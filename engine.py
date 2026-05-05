@@ -1,3 +1,4 @@
+import os
 import re
 import cv2
 import numpy as np
@@ -7,7 +8,10 @@ from datetime import datetime
 
 # ================= CONFIG =================
 
-POPPLER_PATH = r"D:\Projects\python\poppler-25.12.0\Library\bin"
+DEFAULT_POPPLER_PATH = r"D:\Projects\python\poppler-25.12.0\Library\bin"
+POPPLER_PATH = os.environ.get("POPPLER_PATH", DEFAULT_POPPLER_PATH)
+if not os.path.exists(POPPLER_PATH):
+    POPPLER_PATH = None
 DPI = 120
 
 ocr = PaddleOCR(use_angle_cls=False, lang="en", use_gpu=False)

@@ -1,0 +1,7 @@
+flask
+werkzeug
+paddleocr
+pdf2image
+opencv-python
+numpy
+psycopg2-binary

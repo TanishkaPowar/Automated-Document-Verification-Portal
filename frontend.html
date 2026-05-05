@@ -523,7 +523,7 @@
                 <h2 id="login-title">Sign in as Applicant</h2>
                 <div class="form-group">
                     <label for="user-id" id="user-id-label">Applicant ID</label>
-                    <input type="text" id="user-id" placeholder="Enter your applicant ID (e.g., lid001)">
+                    <input type="text" id="user-id" placeholder="Enter your applicant ID (e.g., APP0001)">
                 </div>
                 <div class="form-group">
                     <label for="password">Password</label>
@@ -551,31 +551,31 @@
             <div class="document-section">
                 <div class="document-card">
                     <h3 class="document-title"><i class="fas fa-file-alt"></i> CET Scorecard</h3>
-                    <input type="file" class="file-input" id="cet-scorecard" accept=".pdf,.jpg,.jpeg,.png">
+                    <input type="file" class="file-input" id="cet-scorecard" accept=".pdf">
                     <p class="file-status" id="cet-status">Not uploaded</p>
                 </div>
                 
                 <div class="document-card">
                     <h3 class="document-title"><i class="fas fa-file-certificate"></i> 10th Marksheet</h3>
-                    <input type="file" class="file-input" id="tenth-marksheet" accept=".pdf,.jpg,.jpeg,.png">
+                    <input type="file" class="file-input" id="tenth-marksheet" accept=".pdf">
                     <p class="file-status" id="tenth-status">Not uploaded</p>
                 </div>
                 
                 <div class="document-card">
                     <h3 class="document-title"><i class="fas fa-graduation-cap"></i> 12th/Diploma Marksheet</h3>
-                    <input type="file" class="file-input" id="twelfth-marksheet" accept=".pdf,.jpg,.jpeg,.png">
+                    <input type="file" class="file-input" id="twelfth-marksheet" accept=".pdf">
                     <p class="file-status" id="twelfth-status">Not uploaded</p>
                 </div>
                 
                 <div class="document-card">
                     <h3 class="document-title"><i class="fas fa-file-contract"></i> 12th/Diploma Leaving Certificate</h3>
-                    <input type="file" class="file-input" id="leaving-certificate" accept=".pdf,.jpg,.jpeg,.png">
+                    <input type="file" class="file-input" id="leaving-certificate" accept=".pdf">
                     <p class="file-status" id="leaving-status">Not uploaded</p>
                 </div>
                 
                 <div class="document-card">
                     <h3 class="document-title"><i class="fas fa-id-card"></i> Caste Certificate</h3>
-                    <input type="file" class="file-input" id="caste-certificate" accept=".pdf,.jpg,.jpeg,.png">
+                    <input type="file" class="file-input" id="caste-certificate" accept=".pdf">
                     <p class="file-status" id="caste-status">Not uploaded</p>
                 </div>
             </div>
@@ -648,35 +648,8 @@
     </div>
 
     <script>
-        // Dataset for 400 applicants with lid001, lid002, etc. and pass1, pass2, etc.
-        const applicants = [];
-        const adminCredentials = { id: "admin", password: "admin123" };
-
-        // Generate 400 sample applicants
-        for (let i = 1; i <= 400; i++) {
-            const applicantId = `lid${String(i).padStart(3, '0')}`;
-            const password = `pass${i}`;
-            const firstName = ["Rahul", "Priya", "Amit", "Neha", "Sanjay", "Anjali", "Vikram", "Pooja", "Raj", "Sneha", 
-                              "Karan", "Divya", "Arun", "Meera", "Suresh", "Kavita", "Manoj", "Swati", "Deepak", "Ritu"][i % 20];
-            const lastName = ["Sharma", "Patel", "Kumar", "Gupta", "Verma", "Singh", "Yadav", "Jain", "Malhotra", "Reddy",
-                             "Choudhary", "Das", "Nair", "Menon", "Pillai", "Rao", "Iyer", "Mehta", "Bose", "Banerjee"][i % 20];
-            
-            applicants.push({
-                id: applicantId,
-                password: password,
-                name: `${firstName} ${lastName}`,
-                documents: {
-                    cetScorecard: null,
-                    tenthMarksheet: null,
-                    twelfthMarksheet: null,
-                    leavingCertificate: null,
-                    casteCertificate: null
-                },
-                status: "Not Submitted", // Not Submitted, Under Scrutiny, Approved, Rejected
-                submitted: false,
-                submissionDate: null
-            });
-        }
+        const API_BASE = '';
+        let applicants = [];
 
         // DOM Elements
         const loginSection = document.getElementById('login-section');
@@ -736,7 +709,7 @@
         applicantBtn.classList.add('active');
         adminBtn.classList.remove('active');
         loginTitle.textContent = 'Sign in as Applicant';
-        userIdInput.placeholder = 'Enter your applicant ID (e.g., lid001)';
+        userIdInput.placeholder = 'Enter your applicant ID (e.g., APP0001)';
         userIdLabel.textContent = 'Applicant ID';
         loginMessage.style.display = 'none';
     });
@@ -751,7 +724,7 @@
     });
         
         // Login functionality
-        loginButton.addEventListener('click', () => {
+        loginButton.addEventListener('click', async () => {
             const userId = userIdInput.value.trim().toLowerCase();
             const password = passwordInput.value;
             
@@ -760,37 +733,45 @@
                 return;
             }
             
-            if (applicantBtn.classList.contains('active')) {
-                // Applicant login
-                const applicant = applicants.find(app => app.id === userId && app.password === password);
-                if (applicant) {
-                    currentUser = applicant;
-                    loginSection.style.display = 'none';
-                    
-                    // Show appropriate dashboard based on submission status
-                    if (applicant.submitted) {
-                        // Show status dashboard if documents already submitted
+            loginButton.disabled = true;
+            loginButton.textContent = 'Signing in...';
+
+            try {
+                const role = applicantBtn.classList.contains('active') ? 'applicant' : 'admin';
+                const response = await fetch(`${API_BASE}/api/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ role, userId, password })
+                });
+                const data = await response.json();
+
+                if (!response.ok) {
+                    showLoginMessage(data.error || 'Login failed');
+                    return;
+                }
+
+                loginSection.style.display = 'none';
+                if (role === 'applicant') {
+                    currentUser = data.applicant;
+                    if (currentUser.submitted) {
                         studentStatusDashboard.style.display = 'block';
-                        statusWelcomeMessage.textContent = `Welcome, ${applicant.name}`;
+                        statusWelcomeMessage.textContent = `Welcome, ${currentUser.name}`;
                         loadStatusPage();
                     } else {
-                        // Show upload dashboard if documents not submitted yet
                         studentUploadDashboard.style.display = 'block';
-                        welcomeMessage.textContent = `Welcome, ${applicant.name}`;
+                        welcomeMessage.textContent = `Welcome, ${currentUser.name}`;
                         loadApplicantData();
                     }
                 } else {
-                    showLoginMessage('Invalid Applicant ID or password');
-                }
-            } else {
-                // Admin login
-                if (userId === adminCredentials.id && password === adminCredentials.password) {
-                    loginSection.style.display = 'none';
+                    currentUser = null;
                     adminDashboard.style.display = 'block';
-                    loadAdminDashboard();
-                } else {
-                    showLoginMessage('Invalid Admin ID or password');
+                    await loadAdminDashboard();
                 }
+            } catch (error) {
+                showLoginMessage('Backend is not running. Start it with: python backend_api.py');
+            } finally {
+                loginButton.disabled = false;
+                loginButton.textContent = 'Sign In';
             }
         });
 
@@ -856,47 +837,53 @@
         for (const docType in fileInputs) {
             fileInputs[docType].addEventListener('change', (e) => {
                 if (e.target.files.length > 0) {
-                    // Simulate file upload with progress
-                    simulateFileUpload(docType, e.target.files[0]);
+                    uploadDocument(docType, e.target.files[0]);
                 }
             });
         }
 
-        function simulateFileUpload(docType, file) {
+        async function uploadDocument(docType, file) {
+            if (!currentUser) return;
+
             uploadProgress.style.display = 'block';
-            progressBar.style.width = '0%';
-            
-            // Simulate upload progress
-            let progress = 0;
-            const interval = setInterval(() => {
-                progress += 5;
-                progressBar.style.width = `${progress}%`;
-                
-                if (progress >= 100) {
-                    clearInterval(interval);
-                    
-                    // Update applicant data
-                    currentUser.documents[docType] = {
-                        name: file.name,
-                        size: file.size,
-                        type: file.type,
-                        lastModified: file.lastModified
-                    };
-                    
-                    // Update UI
-                    fileStatuses[docType].textContent = `Uploaded: ${file.name}`;
-                    fileStatuses[docType].style.color = '#28a745';
-                    
-                    // Hide progress bar after a delay
-                    setTimeout(() => {
-                        uploadProgress.style.display = 'none';
-                    }, 1000);
+            progressBar.style.width = '50%';
+            fileStatuses[docType].textContent = `Uploading and reading OCR: ${file.name}`;
+            fileStatuses[docType].style.color = '#ff9800';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch(`${API_BASE}/api/applicants/${currentUser.id}/documents/${docType}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (!response.ok) {
+                    fileStatuses[docType].textContent = data.error || 'Upload failed';
+                    fileStatuses[docType].style.color = '#f44336';
+                    return;
                 }
-            }, 100);
+
+                currentUser = data.applicant;
+                progressBar.style.width = '100%';
+                const ocrNote = data.document.ocr_error ? ' (OCR warning)' : '';
+                fileStatuses[docType].textContent = `Uploaded: ${file.name}${ocrNote}`;
+                fileStatuses[docType].style.color = data.document.ocr_error ? '#ff9800' : '#28a745';
+            } catch (error) {
+                fileStatuses[docType].textContent = 'Upload failed. Check that backend_api.py is running.';
+                fileStatuses[docType].style.color = '#f44336';
+            } finally {
+                setTimeout(() => {
+                    uploadProgress.style.display = 'none';
+                    progressBar.style.width = '0%';
+                }, 800);
+            }
         }
         
         // Submit documents
-        submitDocumentsBtn.addEventListener('click', () => {
+        submitDocumentsBtn.addEventListener('click', async () => {
             if (!currentUser) return;
             
             let allUploaded = true;
@@ -908,17 +895,30 @@
             }
             
             if (allUploaded) {
-                currentUser.submitted = true;
-                currentUser.status = "Under Scrutiny";
-                currentUser.submissionDate = new Date().toLocaleDateString();
-                
-                // Switch to status dashboard after submission
-                studentUploadDashboard.style.display = 'none';
-                studentStatusDashboard.style.display = 'block';
-                statusWelcomeMessage.textContent = `Welcome, ${currentUser.name}`;
-                loadStatusPage();
-                
-                alert('Documents submitted successfully! Your application is now under review.');
+                submitDocumentsBtn.disabled = true;
+                submitDocumentsBtn.textContent = 'Verifying...';
+
+                try {
+                    const response = await fetch(`${API_BASE}/api/applicants/${currentUser.id}/submit`, { method: 'POST' });
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        alert(data.error || 'Submission failed');
+                        return;
+                    }
+
+                    currentUser = data.applicant;
+                    studentUploadDashboard.style.display = 'none';
+                    studentStatusDashboard.style.display = 'block';
+                    statusWelcomeMessage.textContent = `Welcome, ${currentUser.name}`;
+                    loadStatusPage();
+                    alert('Documents submitted and verified successfully.');
+                } catch (error) {
+                    alert('Submission failed. Check that backend_api.py is running.');
+                } finally {
+                    submitDocumentsBtn.disabled = false;
+                    submitDocumentsBtn.textContent = 'Submit Documents';
+                }
             } else {
                 alert('Please upload all required documents before submitting.');
             }
@@ -945,12 +945,6 @@
             
             // Update icon, title and message based on status
             switch(currentUser.status) {
-                case "Under Scrutiny":
-                    statusIcon.innerHTML = '<i class="fas fa-hourglass-half" style="color: #ff9800;"></i>';
-                    statusTitle.textContent = "Application Under Review";
-                    statusTitle.style.color = "#ff9800";
-                    statusMessage.textContent = "Your documents have been submitted and are currently under scrutiny.";
-                    break;
                 case "Approved":
                     statusIcon.innerHTML = '<i class="fas fa-check-circle" style="color: #4caf50;"></i>';
                     statusTitle.textContent = "Application Approved";
@@ -962,6 +956,12 @@
                     statusTitle.textContent = "Application Rejected";
                     statusTitle.style.color = "#f44336";
                     statusMessage.textContent = "We're sorry, but your application has been rejected.";
+                    break;
+                case "Under Scrutiny":
+                    statusIcon.innerHTML = '<i class="fas fa-hourglass-half" style="color: #ff9800;"></i>';
+                    statusTitle.textContent = "Application Under Review";
+                    statusTitle.style.color = "#ff9800";
+                    statusMessage.textContent = currentUser.remarks || "Your documents have been submitted and are currently under scrutiny.";
                     break;
                 default:
                     statusIcon.innerHTML = '<i class="fas fa-exclamation-circle" style="color: #ff9800;"></i>';
@@ -1000,9 +1000,17 @@
         }
         
         // Admin dashboard functionality
-        function loadAdminDashboard() {
+        async function loadAdminDashboard() {
             studentsTableBody.innerHTML = '';
             
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/applicants`);
+                applicants = await response.json();
+            } catch (error) {
+                studentsTableBody.innerHTML = '<tr><td colspan="6">Backend is not running. Start it with: python backend_api.py</td></tr>';
+                return;
+            }
+
             applicants.forEach(applicant => {
                 const documentsUploaded = countUploadedDocuments(applicant);
                 const verificationPercentage = calculateVerificationPercentage(applicant);
@@ -1013,7 +1021,7 @@
                     <td>${applicant.name}</td>
                     <td>${documentsUploaded}/5</td>
                     <td class="verification-percentage">${verificationPercentage}%</td>
-                    <td><span class="status-badge status-${applicant.status.toLowerCase().replace(' ', '-')}">${applicant.status}</span></td>
+                    <td><span class="status-badge status-${applicant.status.toLowerCase().replace(/\s+/g, '-')}">${applicant.status}</span></td>
                     <td>
                         <button class="action-btn approve-btn" ${applicant.status === 'Approved' || applicant.status === 'Not Submitted' ? 'disabled' : ''}>Approve</button>
                         <button class="action-btn reject-btn" ${applicant.status === 'Rejected' || applicant.status === 'Not Submitted' ? 'disabled' : ''}>Reject</button>
@@ -1024,28 +1032,25 @@
                 const approveBtn = row.querySelector('.approve-btn');
                 const rejectBtn = row.querySelector('.reject-btn');
                 
-                approveBtn.addEventListener('click', () => {
-                    applicant.status = 'Approved';
-                    loadAdminDashboard();
-                    
-                    // If this is the current user, update their status display
-                    if (currentUser && currentUser.id === applicant.id) {
-                        updateStatusDisplay();
-                    }
+                approveBtn.addEventListener('click', async () => {
+                    await updateApplicantStatus(applicant.id, 'Approved');
                 });
                 
-                rejectBtn.addEventListener('click', () => {
-                    applicant.status = 'Rejected';
-                    loadAdminDashboard();
-                    
-                    // If this is the current user, update their status display
-                    if (currentUser && currentUser.id === applicant.id) {
-                        updateStatusDisplay();
-                    }
+                rejectBtn.addEventListener('click', async () => {
+                    await updateApplicantStatus(applicant.id, 'Rejected');
                 });
                 
                 studentsTableBody.appendChild(row);
             });
+        }
+
+        async function updateApplicantStatus(applicantId, status) {
+            await fetch(`${API_BASE}/api/admin/applicants/${applicantId}/status`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status })
+            });
+            await loadAdminDashboard();
         }
 
         function countUploadedDocuments(applicant) {
@@ -1057,8 +1062,7 @@
         }
 
         function calculateVerificationPercentage(applicant) {
-            const uploaded = countUploadedDocuments(applicant);
-            return Math.round((uploaded / 5) * 100);
+            return applicant.verificationPercentage || 0;
         }
 
         // Search functionality for admin dashboard
@@ -1087,7 +1091,7 @@
 
         // Initialize the application
         console.log('Application initialized with 400 sample applicants');
-        console.log('Sample login: lid001 / pass1');
+        console.log('Sample login: APP0001 / pass1');
         console.log('Admin login: admin / admin123');
     </script>
 </body>
